@@ -23,7 +23,9 @@ rule all:
         expand("../results/kraken2/outputs/{sample}.output", sample=SAMPLE),
         expand("../results/kraken2/reports/{sample}.report", sample=SAMPLE),
         # CARD alignment outputs
-        expand("../results/card/{sample}.tsv", sample=SAMPLE)
+        expand("../results/card/{sample}.tsv", sample=SAMPLE),
+        # Bacmet Aligment 
+        expand("../results/bacmet/{sample}.tsv", sample=SAMPLE)
 
 ##########################################
 #### Taxonomic Classification Kraken2 ####
@@ -77,8 +79,48 @@ rule diamond_card:
         diamond blastx -d {params.database} \
                       -q {input.contigs} \
                       -o {output.card_output} \
+                      -p {resources.threads} \
                       --id 95 \
                       --subject-cover 90 \
+                      -F 15 \
+                      --range-culling \
+                      -k 5 \
                       > {log} 2>&1
         """
+
+##########################
+### Bacmet2 Alignment ####
+##########################
+rule diamond_bacmet:
+    input:
+        contigs = "../resources/Data/{sample}.fasta"
+    output:
+        bacmet_output = "../results/bacmet/{sample}.tsv"
+    params:
+        database = "../../../Databases/bacmet/bacmet2.dmnd"
+    resources:
+        threads = 6
+    log:
+        "../resources/Logs/bacmet/{sample}.log"
+    conda:
+        "../envs/diamond_env.yaml"
+    shell:
+        """
+        mkdir -p $(dirname {output.bacmet_output})
+        diamond blastx -d {params.database} \
+                        -q {input.contigs}\
+                        -o {output.bacmet_output} \
+                        --id 95 \
+                        --subject-cover 90 \
+                        -p {resources.threads} \
+                        -k 5 \
+                        -F 15 \
+                        --range-culling \
+                        > {log} 2>&1
+        """
+
+
+
+
+
 
